@@ -21,7 +21,7 @@ def run_movement():
 
 def run_landshare():
     while True:
-        run_command('/usr/bin/node /root/plume-bot/landshare.js')
+        run_command('/usr/bin/node /root/plume-bot/landShare.js')
         time.sleep(12 * 60 * 60)  # Sleep for 12 hours
 
 def main():
