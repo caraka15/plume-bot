@@ -46,9 +46,9 @@ async function sendTransaction(contract, pairIndex, isLong) {
   } catch (error) {
     if (error.message.includes("Wait for cooldown")) {
       console.log("Pair sudah digunakan, mencoba transaksi lain...");
-      return null; // Transaksi gagal, coba lagi
+    } else {
+      console.error("Terjadi kesalahan:", error.message);
     }
-    console.error("Terjadi kesalahan:", error.message);
     return null; // Transaksi gagal, coba lagi
   }
 }
@@ -73,35 +73,38 @@ async function main() {
   const contract = new ethers.Contract(contractAddress, abi, wallet);
 
   const transactionHashes = [];
-  let successfulTransactions = 0;
-  while (successfulTransactions < 5) {
-    const pairIndex = getRandomInt(1, 10); // Nilai acak antara 1 dan 10
+  for (let i = 0; i < 10; i++) {
+    const pairIndex = getRandomInt(0, 10); // Nilai acak antara 1 dan 10
     const isLong = getRandomBool(); // Nilai acak true atau false
 
     console.log(
       `Mencoba transaksi ${
-        successfulTransactions + 1
+        i + 1
       } dengan pairIndex ${pairIndex}, isLong ${isLong}`
     );
     const txHash = await sendTransaction(contract, pairIndex, isLong);
 
     if (txHash) {
       transactionHashes.push(txHash);
-      successfulTransactions++;
     }
   }
 
-  // Kirim pesan ke Telegram setelah 5 transaksi berhasil
-  const message = `
+  // Kirim pesan ke Telegram dengan semua transaksi berhasil
+  if (transactionHashes.length > 0) {
+    const message = `
 Task movement telah berhasil
-tx 1 = https://testnet-explorer.plumenetwork.xyz/tx/${transactionHashes[0]}
-tx 2 = https://testnet-explorer.plumenetwork.xyz/tx/${transactionHashes[1]}
-tx 3 = https://testnet-explorer.plumenetwork.xyz/tx/${transactionHashes[2]}
-tx 4 = https://testnet-explorer.plumenetwork.xyz/tx/${transactionHashes[3]}
-tx 5 = https://testnet-explorer.plumenetwork.xyz/tx/${transactionHashes[4]}
+${transactionHashes
+  .map(
+    (hash, index) =>
+      `tx ${index + 1} = https://testnet-explorer.plumenetwork.xyz/tx/${hash}`
+  )
+  .join("\n")}
 `;
 
-  await sendTelegramMessage(message);
+    await sendTelegramMessage(message);
+  } else {
+    console.log("Tidak ada transaksi yang berhasil.");
+  }
 }
 
 main();
