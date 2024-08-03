@@ -9,7 +9,7 @@ const config = JSON.parse(fs.readFileSync("config.json"));
 const privateKey = process.env.PRIVATE_KEY;
 
 // Baca ABI dari file abi.json
-const abi = JSON.parse(fs.readFileSync("abi.json"));
+const abi = JSON.parse(fs.readFileSync("abi/abiMovement.json"));
 
 // Inisialisasi provider dan wallet
 const provider = new ethers.JsonRpcProvider(config.rpcUrl);
