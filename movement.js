@@ -9,7 +9,7 @@ const config = JSON.parse(fs.readFileSync("config.json"));
 const privateKey = process.env.PRIVATE_KEY;
 
 // Baca ABI dari file abi.json
-const abi = JSON.parse(fs.readFileSync("abi/abiMovement.json"));
+const abi = JSON.parse(fs.readFileSync("abi.json"));
 
 // Inisialisasi provider dan wallet
 const provider = new ethers.JsonRpcProvider(config.rpcUrl);
@@ -34,15 +34,17 @@ async function sendTransaction(contract, pairIndex, isLong) {
     );
 
     // Tunggu hingga transaksi selesai
-    const receipt = await tx.wait();
-    return receipt.transactionHash; // Mengembalikan hash transaksi jika berhasil
+    await tx.wait();
+    console.log("Transaksi berhasil!");
+    console.log("Transaction Hash:", tx.hash);
+    return true; // Transaksi berhasil
   } catch (error) {
     if (error.message.includes("Wait for cooldown")) {
       console.log("Pair sudah digunakan, mencoba transaksi lain...");
-      return null; // Menandakan transaksi gagal
+      return false; // Transaksi gagal, coba lagi
     }
     console.error("Terjadi kesalahan:", error.message);
-    return null; // Menandakan transaksi gagal
+    return false; // Transaksi gagal, coba lagi
   }
 }
 
@@ -51,25 +53,20 @@ async function main() {
   const contract = new ethers.Contract(contractAddress, abi, wallet);
 
   let successfulTransactions = 0;
-  let transactionCount = 0;
-
-  while (successfulTransactions < 1) {
+  while (successfulTransactions < 5) {
     const pairIndex = getRandomInt(1, 10); // Nilai acak antara 1 dan 10
     const isLong = getRandomBool(); // Nilai acak true atau false
 
     console.log(
       `Mencoba transaksi ${
-        transactionCount + 1
+        successfulTransactions + 1
       } dengan pairIndex ${pairIndex}, isLong ${isLong}`
     );
-    const txHash = await sendTransaction(contract, pairIndex, isLong);
+    const success = await sendTransaction(contract, pairIndex, isLong);
 
-    if (txHash) {
+    if (success) {
       successfulTransactions++;
-      console.log(`Transaksi ${successfulTransactions} berhasil: ${txHash}`);
     }
-
-    transactionCount++;
   }
 }
 
