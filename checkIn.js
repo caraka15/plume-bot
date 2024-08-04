@@ -54,10 +54,10 @@ async function main() {
     console.error("Terjadi kesalahan:", error.message);
 
     // Jika error terkait dengan faucet yang telah diambil
-    // if (error.message.includes("execution reverted (unknown custom error)")) {
-    //   const message = "Faucet telah diambil hari ini";
-    //   await sendTelegramMessage(message);
-    // }
+    if (error.message.includes("execution reverted (unknown custom error)")) {
+      const message = "Faucet telah diambil hari ini";
+      await sendTelegramMessage(message);
+    }
   }
 }
 
