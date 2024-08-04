@@ -18,10 +18,6 @@ const wallet = new ethers.Wallet(privateKey, provider);
 
 const contractAddress = "0x032139f44650481f4d6000c078820B8E734bF253";
 
-// Telegram bot configuration
-const telegramToken = process.env.TELEGRAM_TOKEN;
-const telegramChatId = process.env.TELEGRAM_CHAT_ID;
-
 function getRandomInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -54,17 +50,18 @@ async function sendTransaction(contract, pairIndex, isLong) {
 }
 
 async function sendTelegramMessage(message) {
+  // Telegram bot configuration
+  const telegramToken = process.env.TELEGRAM_TOKEN;
+  const telegramChatId = process.env.TELEGRAM_USER_ID;
   const url = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
-  const payload = {
-    chat_id: telegramChatId,
-    text: message,
-  };
 
   try {
-    await axios.post(url, payload);
-    console.log("Pesan Telegram berhasil dikirim!");
+    await axios.post(url, {
+      chat_id: telegramChatId,
+      text: message,
+    });
   } catch (error) {
-    console.error("Gagal mengirim pesan Telegram:", error.message);
+    console.error("Failed to send Telegram message:", error.message);
   }
 }
 
@@ -74,7 +71,7 @@ async function main() {
 
   const transactionHashes = [];
   for (let i = 0; i < 10; i++) {
-    const pairIndex = getRandomInt(0, 10); // Nilai acak antara 1 dan 10
+    const pairIndex = getRandomInt(1, 10); // Nilai acak antara 1 dan 10
     const isLong = getRandomBool(); // Nilai acak true atau false
 
     console.log(
@@ -89,7 +86,7 @@ async function main() {
     }
   }
 
-  // Kirim pesan ke Telegram dengan semua transaksi berhasil
+  // Kirim pesan ke Telegram
   if (transactionHashes.length > 0) {
     const message = `
 Task movement telah berhasil
@@ -103,7 +100,9 @@ ${transactionHashes
 
     await sendTelegramMessage(message);
   } else {
-    console.log("Tidak ada transaksi yang berhasil.");
+    const message =
+      "Task movement Gagal : Tidak ada transaksi yang berhasil dalam batch ini.";
+    await sendTelegramMessage(message);
   }
 }
 

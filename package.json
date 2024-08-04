@@ -3,6 +3,7 @@
     "axios": "^1.7.3",
     "dotenv": "^16.4.5",
     "ethers": "^6.13.2",
-    "fs": "^0.0.1-security"
+    "fs": "^0.0.1-security",
+    "node-telegram-bot-api": "^0.60.0"
   }
 }
