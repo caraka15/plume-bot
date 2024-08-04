@@ -9,7 +9,7 @@ This bot is designed to interact with the Plume contract on the testnet. Follow 
    First, clone the Plume bot repository to your local directory:
 
    ```bash
-   git clone https://github.com/your-repo/plume-bot.git
+   git clone https://github.com/caraka15/plume-bot.git
    ```
 
 2. **Navigate to the Directory**
