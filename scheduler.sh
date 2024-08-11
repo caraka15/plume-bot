@@ -23,6 +23,13 @@ run_movement() {
     done
 }
 
+run_rivalz() {
+    while true; do
+        run_command '/usr/bin/node /root/plume-bot/rivalz.js'
+        sleep $((24 * 60 * 60))  # Tidur selama 5 jam
+    done
+}
+
 # Fungsi untuk menjalankan landShare
 run_landshare() {
     while true; do
@@ -34,6 +41,7 @@ run_landshare() {
 # Jalankan fungsi di latar belakang
 run_checkIn &
 run_movement &
+run_rivalz &
 run_landshare &
 
 # Tunggu hingga semua proses latar belakang selesai (akan terus berjalan)
