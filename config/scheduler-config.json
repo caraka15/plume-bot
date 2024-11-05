@@ -1,0 +1,19 @@
+{
+  "timezone": "Asia/Jakarta",
+  "tasks": [
+    {
+      "name": "Rivalz Task",
+      "file": "rivalz.js",
+      "schedule": "14:19",
+      "enabled": true,
+      "runNow": false
+    },
+    {
+      "name": "Movement Task",
+      "file": "movement.js",
+      "schedule": "14:21",
+      "enabled": false,
+      "runNow": false
+    }
+  ]
+}

@@ -1,29 +1,25 @@
-require("dotenv").config(); // Memuat variabel lingkungan dari .env
+require("dotenv").config();
 const { ethers } = require("ethers");
 const axios = require("axios");
 
 // Setup provider and wallet
-const provider = new ethers.JsonRpcProvider(
-  "https://rivalz2.rpc.caldera.xyz/http"
-); // URL RPC
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider); // Menggunakan private key dari .env
+const provider = new ethers.JsonRpcProvider("https://rivalz2.rpc.caldera.xyz/http");
+const wallet = new ethers.Wallet(process.env.PRIVATE_KEY2, provider);
 
 // Contract address
-const contractAddress = "0xeBBa6Ffff611b7530b57Ed07569E9695B98e6c82"; // Alamat kontrak
+const contractAddress = "0xF0a66d18b46D4D5dd9947914ab3B2DDbdC19C2C0";
 
 // Define ABI for the claim function
-const abi = ["function claim()"];
-const iface = new ethers.Interface(abi);
-const data = iface.encodeFunctionData("claim");
+const abi = ["function claim() external"];
+const contract = new ethers.Contract(contractAddress, abi, wallet);
 
 // Counter for successful transactions
 let successfulClaims = 0;
-const maxClaims = 20;
-const transactionHashes = []; // Array to store transaction hashes
+const maxClaims = 16;
+const transactionHashes = [];
 
 // Function to send Telegram message
 async function sendTelegramMessage(message) {
-  // Telegram bot configuration
   const telegramToken = process.env.TELEGRAM_TOKEN;
   const telegramChatId = process.env.TELEGRAM_USER_ID;
   const url = `https://api.telegram.org/bot${telegramToken}/sendMessage`;
@@ -32,78 +28,120 @@ async function sendTelegramMessage(message) {
     await axios.post(url, {
       chat_id: telegramChatId,
       text: message,
+      parse_mode: 'Markdown'
     });
   } catch (error) {
     console.error("Failed to send Telegram message:", error.message);
   }
 }
 
+// Function to get current gas price with buffer
+async function getGasPrice() {
+  const gasPrice = await provider.getFeeData();
+  // Add 10% buffer to maxFeePerGas
+  const maxFeePerGas = gasPrice.maxFeePerGas * BigInt(110) / BigInt(100);
+  const maxPriorityFeePerGas = gasPrice.maxPriorityFeePerGas * BigInt(110) / BigInt(100);
+
+  return { maxFeePerGas, maxPriorityFeePerGas };
+}
+
 // Function to create and send transaction
 async function sendTransaction() {
   try {
-    // Create transaction
-    const tx = {
-      to: contractAddress,
-      data: data,
-      type: 2, // EIP-1559 transaction type
-    };
+    // Get gas price
+    const { maxFeePerGas, maxPriorityFeePerGas } = await getGasPrice();
 
-    // Send transaction
-    const txResponse = await wallet.sendTransaction(tx);
-    console.log("Transaction Hash:", txResponse.hash);
+    // Estimate gas
+    const gasLimit = await contract.claim.estimateGas();
+    const adjustedGasLimit = gasLimit * BigInt(120) / BigInt(100); // Add 20% buffer
 
-    // Store transaction hash
-    transactionHashes.push(txResponse.hash);
+    // Create and send transaction
+    const tx = await contract.claim({
+      maxFeePerGas,
+      maxPriorityFeePerGas,
+      gasLimit: adjustedGasLimit,
+    });
+
+    console.log("Transaction Hash:", tx.hash);
+    transactionHashes.push(tx.hash);
 
     // Wait for transaction confirmation
-    const receipt = await txResponse.wait();
+    const receipt = await tx.wait();
 
     if (receipt.status === 1) {
       successfulClaims++;
       console.log("Transaction confirmed in block:", receipt.blockNumber);
+      console.log(`Gas used: ${receipt.gasUsed.toString()}`);
     } else {
-      console.log("Transaction failed:", txResponse.hash);
+      console.log("Transaction failed:", tx.hash);
     }
 
-    return receipt.status === 1; // Return true if the transaction was successful
+    return receipt.status === 1;
   } catch (error) {
     console.error("Error sending transaction:", error);
-    return false; // Return false if an error occurred
+
+    // Log more detailed error information
+    if (error.reason) console.error("Error reason:", error.reason);
+    if (error.code) console.error("Error code:", error.code);
+    if (error.data) console.error("Error data:", error.data);
+
+    return false;
   }
 }
 
 // Run sendTransaction until 20 successful transactions are achieved
 async function runMultipleTransactions() {
-  while (successfulClaims < maxClaims) {
-    console.log(
-      `Attempting to send transaction ${successfulClaims + 1}/${maxClaims}`
-    );
+  let retryCount = 0;
+  const maxRetries = 30; // Maximum number of retry attempts
+
+  while (successfulClaims < maxClaims && retryCount < maxRetries) {
+    console.log(`Attempting to send transaction ${successfulClaims + 1}/${maxClaims}`);
     const success = await sendTransaction();
+
     if (success) {
-      console.log(
-        `Successfully completed ${successfulClaims}/${maxClaims} claims.`
-      );
+      console.log(`Successfully completed ${successfulClaims}/${maxClaims} claims.`);
+      retryCount = 0; // Reset retry counter after successful transaction
+    } else {
+      console.log("Transaction failed, waiting before retry...");
+      retryCount++;
+      console.log(`Retry attempt ${retryCount}/${maxRetries}`);
     }
-    // Optional: Add delay between transactions to avoid hitting rate limits
-    await new Promise((resolve) => setTimeout(resolve, 30000)); // 30 seconds delay
+
+    // Add random delay between 30-45 seconds
+    const delay = 30000 + Math.floor(Math.random() * 15000);
+    console.log(`Waiting ${delay / 1000} seconds before next transaction...`);
+    await new Promise(resolve => setTimeout(resolve, delay));
   }
 
   // Create summary message
-  const summaryMessage =
-    `All transactions completed successfully. Here are the details:\n\n` +
-    transactionHashes
-      .map(
-        (hash, index) =>
-          `Transaction ${
-            index + 1
-          }: [Link](https://rivalz2.explorer.caldera.xyz/tx/${hash})`
-      )
-      .join("\n");
+  let summaryMessage;
+  if (successfulClaims === maxClaims) {
+    summaryMessage =
+      `🎉 All ${maxClaims} transactions completed successfully!\n\n` +
+      transactionHashes
+        .map((hash, index) =>
+          `Claim ${index + 1}: [View Transaction](https://rivalz2.explorer.caldera.xyz/tx/${hash})`
+        )
+        .join('\n');
+  } else {
+    summaryMessage =
+      `⚠️ Script completed with ${successfulClaims}/${maxClaims} successful claims.\n\n` +
+      transactionHashes
+        .map((hash, index) =>
+          `Claim ${index + 1}: [View Transaction](https://rivalz2.explorer.caldera.xyz/tx/${hash})`
+        )
+        .join('\n');
+  }
 
-  // Send summary message to Telegram
+  // Send final summary message to Telegram
   await sendTelegramMessage(summaryMessage);
-  console.log("All transactions completed successfully.");
+
+  if (successfulClaims === maxClaims) {
+    console.log("All transactions completed successfully.");
+  } else {
+    console.log(`Script completed with ${successfulClaims}/${maxClaims} successful claims.`);
+  }
 }
 
 // Start sending transactions
-runMultipleTransactions();
+runMultipleTransactions().catch(console.error);
