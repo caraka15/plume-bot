@@ -1,103 +1,217 @@
-# Plume Bot
+# Scheduler Bot
 
-This bot is designed to interact with the Plume contract on the testnet. Follow the steps below to set up and run the bot.
+Bot ini dirancang untuk menjalankan multiple bot JavaScript secara terjadwal. Saat ini mendukung penjadwalan untuk Rivalz Bot dan Plume Bot.
 
-## Setup Instructions
+## ⚠️ Peringatan Penting
 
-1. **Clone the Repository**
+1. **Keamanan**:
 
-   First, clone the Plume bot repository to your local directory:
+   - **JANGAN PERNAH** menggunakan wallet utama untuk bot
+   - Pastikan setiap bot menggunakan wallet terpisah
+   - Backup private key di tempat yang aman
+   - Jangan share private key dengan siapapun
+
+2. **Risk Management**:
+   - Monitor aktivitas setiap bot secara berkala
+   - Set resource yang aman untuk setiap operasi
+   - Pastikan ada cukup gas untuk operasi
+
+## Persiapan
+
+1. Clone repositori:
 
    ```bash
-   git clone https://github.com/caraka15/plume-bot.git
+   git clone https://github.com/caraka15/scheduler-bot.git
    ```
 
-2. **Navigate to the Directory**
-
-   Change to the `plume-bot` directory:
+2. Masuk ke direktori:
 
    ```bash
-   cd plume-bot
+   cd scheduler-bot
    ```
 
-3. **Install Dependencies**
-
-   Install all required dependencies using npm:
+3. Install dependencies:
 
    ```bash
    npm install
    ```
 
-4. **Create a `.env` File**
+4. Letakkan file bot yang ingin dijadwalkan di root directory:
 
-   Create a `.env` file in the root directory of your project with the following configuration:
-
-   ```plaintext
-   PRIVATE_KEY=your_private_key_here
-   TELEGRAM_TOKEN=your_telegram_bot_token_here
-   TELEGRAM_CHAT_ID=your_telegram_chat_id_here
+   ```
+   scheduler-bot/
+   ├── rivalz.js      # Bot Rivalz
+   └── plume/         # Bot Plume
+       ├── checkIn.js
+       ├── movement.js
+       └── landShare.js
    ```
 
-   Replace `your_private_key_here`, `your_telegram_bot_token_here`, and `your_telegram_chat_id_here` with your actual values.
-
-5. **Run the Scheduler in Screen**
-
-   Open a `screen` session to run the scheduler:
-
-   ```bash
-   screen -Rd plume
+5. Edit `config/scheduler-config.json`:
+   ```json
+   {
+     "timezone": "Asia/Jakarta",
+     "tasks": [
+       {
+         "name": "Rivalz Bot",
+         "file": "rivalz.js",
+         "schedule": "08:00",
+         "enabled": true,
+         "runNow": false
+       },
+       {
+         "name": "Plume Check In",
+         "file": "plume/checkIn.js",
+         "schedule": "09:00",
+         "enabled": true,
+         "runNow": false
+       },
+       {
+         "name": "Plume Movement",
+         "file": "plume/movement.js",
+         "schedule": "12:00",
+         "enabled": true,
+         "runNow": false
+       },
+       {
+         "name": "Plume Land Share",
+         "file": "plume/landShare.js",
+         "schedule": "15:00",
+         "enabled": true,
+         "runNow": false
+       }
+     ]
+   }
    ```
 
-   Once inside the `screen` session, give execution permission to the scheduler script and run it:
+## Cara Menjalankan
 
-   ```bash
-   chmod +x scheduler.sh
-   ./scheduler.sh
-   ```
+### 1. Menggunakan Screen (Recommended)
 
-   **Note**: If you want to detach from the `screen` session without stopping the process, press `Ctrl + A` followed by `D`.
+```bash
+# Buat screen session
+screen -Rd scheduler
 
-## Manual Execution
+# Jalankan scheduler
+npm start
 
-If you prefer to run scripts manually instead of using the scheduler, follow these commands:
+# Detach dari screen: CTRL+A+D
+# Reattach ke screen: screen -Rd scheduler
+```
 
-- **Run `checkIn.js`:**
+### 2. Development Mode
 
-  ```bash
-  node checkIn.js
-  ```
+```bash
+npm run dev  # Jalankan dengan auto-reload
+```
 
-- **Run `movement.js`:**
+### 3. Run Task Langsung
 
-  ```bash
-  node movement.js
-  ```
+Jika ingin menjalankan task sekarang tanpa menunggu jadwal:
 
-- **Run `landShare.js`:**
+```bash
+# Edit scheduler-config.json, set "runNow": true untuk task yang ingin dijalankan
+npm start
+```
 
-  ```bash
-  node landShare.js
-  ```
+## Struktur Project
 
-## Project Structure
+```
+scheduler-bot/
+├── config/
+│   └── scheduler-config.json  # Konfigurasi jadwal
+├── src/
+│   ├── scheduler.js          # Universal scheduler
+│   └── index.js             # Entry point
+├── rivalz.js                # Rivalz bot
+├── plume/                   # Plume bot files
+│   ├── checkIn.js
+│   ├── movement.js
+│   └── landShare.js
+└── package.json
+```
 
-- `checkIn.js` - Script for performing check-ins.
-- `movement.js` - Script for predicting price movements.
-- `landShare.js` - Script for sharing land results.
-- `scheduler.sh` - Shell script for scheduling and running tasks periodically.
-- `config.json` - Configuration file for RPC URL and other settings.
-- `abi/` - Directory containing contract ABI files.
+## Konfigurasi Task
+
+| Parameter | Deskripsi                               |
+| --------- | --------------------------------------- |
+| name      | Nama task untuk identifikasi            |
+| file      | Path ke file yang akan dijalankan       |
+| schedule  | Waktu eksekusi (format: HH:mm)          |
+| enabled   | Status aktif/nonaktif task              |
+| runNow    | Jalankan langsung tanpa menunggu jadwal |
 
 ## Troubleshooting
 
-If you encounter issues running the bot, ensure that:
+1. Error scheduler:
 
-1. All dependencies are installed correctly.
-2. The `.env` file is properly configured.
-3. You are running commands inside the `screen` session if using the scheduler.
+   - Verifikasi timezone di config
+   - Cek format waktu (HH:mm)
+   - Pastikan path file benar
+   - Cek status enabled di config
 
-If problems persist, check the logs for more details.
+2. Error screen:
 
-## Contact
+   - `screen -ls` - List semua session
+   - `screen -Rd scheduler` - Reattach ke session
+   - `screen -X -S scheduler quit` - Kill session
 
-For further assistance, please open an issue on the repository.
+3. Error task:
+   - Cek logs dari masing-masing bot
+   - Verifikasi file bot bisa dijalankan manual
+   - Cek dependencies masing-masing bot
+
+## Maintenance
+
+1. Update bot:
+
+   ```bash
+   git pull
+   npm install
+   ```
+
+2. Cek status:
+
+   ```bash
+   # Lihat screen session
+   screen -ls
+
+   # Lihat logs
+   tail -f logs/scheduler.log
+   ```
+
+3. Restart bot:
+
+   ```bash
+   # Masuk ke screen
+   screen -Rd scheduler
+
+   # CTRL+C untuk stop
+   # npm start untuk start ulang
+   ```
+
+## Support
+
+Jika mengalami masalah atau ada pertanyaan:
+
+- Buka issue di GitHub
+- Hubungi: [@caraka17](https://t.me/caraka17)
+
+## Donasi
+
+Jika Anda merasa terbantu dengan bot ini, Anda dapat memberikan dukungan melalui:
+
+- Crypto: `0xede7fa099638d4f39931d2df549ac36c90dfbd26`
+- Saweria: [https://saweria.co/crxanode](https://saweria.co/crxanode)
+
+## Disclaimer
+
+Bot ini disediakan "as is" tanpa jaminan apapun. Pengguna bertanggung jawab penuh atas penggunaan bot dan resiko yang mungkin timbul. Pastikan untuk:
+
+- Menggunakan wallet terpisah
+- Monitoring secara berkala
+- Memahami resiko operasi di blockchain
+
+## License
+
+MIT License - lihat file [LICENSE](LICENSE) untuk detail lengkap.
